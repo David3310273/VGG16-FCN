@@ -12,7 +12,8 @@ class MyFCN(nn.Module):
         self.backbone_fifth = model.features[:31]  # (512, 7, 7) final pooling before conv layer
 
         self.fcn_block_1 = nn.Sequential(          # (1, 7, 7)
-            nn.Conv2d(512, 1, (1, 1))
+            nn.Conv2d(512, 4096, (1, 1)),
+            nn.Conv2d(4096, 1, (1, 1)),
         )
 
         self.fcn_block_1_1 = nn.Sequential(  # (1, 7, 7)
@@ -22,28 +23,26 @@ class MyFCN(nn.Module):
         self.fcn_block_2 = nn.Sequential(
             nn.Upsample(scale_factor=2),
             nn.ConvTranspose2d(1, 1, (3, 3), (1, 1)),
-            nn.ReLU()
+            nn.ReLU(inplace=True)
         )
 
         self.fcn_block_8 = nn.Sequential(
             nn.Upsample(scale_factor=8),
             nn.ConvTranspose2d(1, 1, (3, 3), (1, 1), 1),
-            nn.ReLU()
+            nn.ReLU(inplace=True)
         )
 
         self.fcn_block_16 = nn.Sequential(
             nn.Upsample(scale_factor=16),
             nn.ConvTranspose2d(1, 1, (3, 3), (1, 1), 1),
-            nn.ReLU()
+            nn.ReLU(inplace=True)
         )
 
         self.fcn_block_32 = nn.Sequential(
             nn.Upsample(scale_factor=32),
             nn.ConvTranspose2d(1, 1, (3, 3), (1, 1), 1),
-            nn.ReLU()
+            nn.ReLU(inplace=True)
         )
-
-        self.seg_head = nn.Linear(3, 1)
 
     def forward(self, x):
         # Get basic feature map
