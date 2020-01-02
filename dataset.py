@@ -9,25 +9,23 @@ import torchvision.transforms.functional as TF
 from torchvision.transforms import ColorJitter
 
 class EndovisDataset(Dataset):
-    def __init__(self, path_dict, need_aug=True, frame_len=1, training_ratio=1):
+    def __init__(self, path_dict, need_aug=True, frame_len=1):
         """
-        :param pathDict: 必须包括"img", "gt"字段
+        :param pathDict: 必须包括"img", "gt"字段, 以及对应的数据集列表
         """
         super().__init__()
 
-        assert 0 < training_ratio <= 1
-        assert len(os.listdir(path_dict["img"])) == len(os.listdir(path_dict["gt"]))
+        assert len(path_dict["img"]) == len(path_dict["gt"])
 
         self.path_dict = path_dict
         self.data_aug = need_aug
         self.frame_len = frame_len
-        self.training_ratio = training_ratio
-        self.model_size = (224, 224)
+        self.model_size = (224, 224)    # limitted by VGG16 backbone
 
         # 预先计算dataset个数和包含的图片的个数
-        assert len(os.listdir(path_dict["img"])) > 0
-        self.dataset_len = len(os.listdir(path_dict["img"]))
-        dum_dataset_path = os.path.join(path_dict["img"], os.listdir(path_dict["img"])[-1])
+        assert len(path_dict["img"]) > 0
+        self.dataset_len = len(path_dict["img"])
+        dum_dataset_path = path_dict["img"][-1]
         self.images_count = len(os.listdir(dum_dataset_path))
 
         self.__make_dataset()
@@ -44,24 +42,18 @@ class EndovisDataset(Dataset):
         image = TF.resize(image, self.model_size)
         return image
 
-    def _get_dataset(self, dataset):
-        length = len(dataset)
-        training_length = math.floor(length*self.training_ratio)
-        return dataset[:training_length]
-
     def __make_dataset(self):
         datadict = self.path_dict
         assert "img" in datadict and "gt" in datadict
 
         # 按照dataset目录加载图片的绝对路径, 后续可以设置具体需要加载的dataset
-        datasets = os.listdir(datadict["img"])
-        datasets = self._get_dataset(datasets)
+        datasets = datadict["img"]
         datasets.sort()
 
         images = []
 
         for dataset in datasets:
-            img_path = os.path.join(datadict["img"], dataset)
+            img_path = dataset
             imgs = os.listdir(img_path)
             imgs.sort()  # 保证按时间顺序加载帧
             for img in imgs:
@@ -69,14 +61,13 @@ class EndovisDataset(Dataset):
                 images.append(img_path)
 
         # 按照dataset目录加载ground truth
-        datasets = os.listdir(datadict["gt"])
-        datasets = self._get_dataset(datasets)
+        datasets = datadict["gt"]
         datasets.sort()
 
         ground_truths = []
 
         for dataset in datasets:
-            img_path = os.path.join(datadict["gt"], dataset)
+            img_path = dataset
             imgs = os.listdir(img_path)
             imgs.sort()  # 保证按时间顺序加载帧
             for img in imgs:
