@@ -4,10 +4,12 @@ import torch.optim as optim
 import os
 import configparser
 from benchmarks import *
+from visualization import *
 
 config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.ini"))
 epochs = int(config["training"]["epochs"])
+is_debug = bool(config["app"]["debug"])
 
 
 def testing(test_loader, model, loss_fn, epoch=0):
@@ -71,6 +73,7 @@ def training(train_loader, test_loader, model, loss_fn):
         print("The loss of epoch {} is {}".format(i, total_loss/index))
         writer.add_scalar("train/bce_loss", total_loss/index, i)
         # output result image every epoch
+        # TODO: Save output to the dir
         with torch.no_grad():
             model.eval()
             index = 0
@@ -82,8 +85,11 @@ def training(train_loader, test_loader, model, loss_fn):
                 outputs = model(images)
                 for key, output in enumerate(outputs):
                     # get iou at each epoch
-                    iou += getIOU(output, ground_truths[key])
-                    # TODO: 打印异常输出，原始输入的图片和模型输出结果
+                    temp_iou = getIOU(output, ground_truths[key])
+                    # record the outliers when iou is less than 0.1
+                    if is_debug and temp_iou < 0.1:
+                        visualize_outlier(images[key], output, i, "frame000")
+                    iou += temp_iou
                     index += 1
                     # visualize the output
                     result_image = TF.to_pil_image(255*output).convert("L")     # (1, 224, 224)

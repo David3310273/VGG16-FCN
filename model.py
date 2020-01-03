@@ -1,6 +1,14 @@
 import torchvision.models as models
 import torch.nn as nn
 import torch
+import os
+import configparser
+import time
+from visualization import *
+
+config = configparser.ConfigParser()
+config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.ini"))
+is_debug = bool(config["app"]["debug"])
 
 
 class MyFCN(nn.Module):
@@ -57,6 +65,11 @@ class MyFCN(nn.Module):
         x_3 = self.backbone_third(x)       # (256, 28, 28)
         x_3 = self.fcn_block_1_1(x_3)      # (1, 28, 28)
         x_3 = self.fcn_block_8(x_3)        # (1, 224, 224)
+
+        if is_debug:
+            visualize_middle_map(x_1, "x_1_{}.png".format(int(time.time())))
+            visualize_middle_map(x_2, "x_2_{}.png".format(int(time.time())))
+            visualize_middle_map(x_3, "x_3_{}.png".format(int(time.time())))
 
         # # Fuse the feature map
         x_cat = torch.cat([x_1, x_2, x_3], dim=0)   # (3, 1, 224, 224)
