@@ -92,7 +92,7 @@ def training(train_loader, test_loader, model, loss_fn):
                     iou += temp_iou
                     index += 1
                     # visualize the output
-                    result_image = TF.to_pil_image(255*output).convert("L")     # (1, 224, 224)
+                    result_image = TF.to_pil_image(output).convert("L")     # (1, 224, 224)
                     result_image.save(os.path.join("images", "epoch_{}.png".format(i)))
             avg_iou = iou / index
             print("The iou at epoch {} is {}...".format(i, avg_iou))
