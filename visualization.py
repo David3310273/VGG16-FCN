@@ -21,7 +21,7 @@ def visualize_middle_map(x, filename):
         image.save(target)
 
 
-def visualize_outlier(img, output, epoch, filename):
+def visualize_outlier(img, output, mask, epoch, filename):
     """
     记录性能异常的输入输出，并标注epoch
     :param img: 输入
@@ -36,11 +36,14 @@ def visualize_outlier(img, output, epoch, filename):
         os.mkdir(os.path.join(outlier_root, str(epoch)))
 
     img = TF.to_pil_image(img)
-    output = TF.to_pil_image(output)
+    output = TF.to_pil_image(output).convert("L")
+    mask = TF.to_pil_image(mask).convert("L")
     img_path = os.path.join(outlier_root, str(epoch), "img_{}.png".format(filename))
     output_path = os.path.join(outlier_root, str(epoch), "output_{}.png".format(filename))
+    mask_path = os.path.join(outlier_root, str(epoch), "mask_{}.png".format(filename))
     img.save(img_path)
     output.save(output_path)
+    mask.save(mask_path)
 
 
 

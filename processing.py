@@ -4,10 +4,14 @@ from pydensecrf.utils import unary_from_labels, create_pairwise_bilateral, creat
 from skimage.color import gray2rgb
 
 
-def crf_processing(original_image, annotated_image):
+def crf_processing(original_image, annotated_image, thresholds=0.5):
     """
-    使用原始图片和0-1二值化标注图片进行后处理，返回最终的二值化图
+    使用原始图片和标注图片进行后处理，返回最终的二值化图
     """
+    # 根据阈值二值化标注图
+    annotated_image[annotated_image >= thresholds] = 1
+    annotated_image[annotated_image < thresholds] = 0
+    annotated_image = annotated_image.astype("uint8")
 
     if len(annotated_image.shape) < 3:
         annotated_image = gray2rgb(annotated_image)

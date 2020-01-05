@@ -5,6 +5,7 @@ import os
 import configparser
 from benchmarks import *
 from visualization import *
+from processing import crf_processing
 
 config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.ini"))
@@ -85,7 +86,9 @@ def training(train_loader, test_loader, model, loss_fn):
                 outputs = model(images)
                 for key, output in enumerate(outputs):
                     # get iou at each epoch
-                    temp_iou = getIOU(output, ground_truths[key])
+                    processed_img = crf_processing(output.numpy(), ground_truths[key].numpy())
+                    processed_output = torch.from_numpy(processed_img)
+                    temp_iou = getIOU(processed_output, ground_truths[key])
                     # record the outliers when iou is less than 0.1
                     if is_debug and temp_iou < 0.1:
                         visualize_outlier(images[key], output, i, "frame000")
