@@ -5,7 +5,7 @@ import os
 import configparser
 from benchmarks import *
 from visualization import *
-from processing import crf_processing
+import numpy as np
 
 config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.ini"))
@@ -86,22 +86,21 @@ def training(train_loader, test_loader, model, loss_fn):
                 outputs = model(images)
                 for key, output in enumerate(outputs):
                     # get iou at each epoch
-                    processed_img = crf_processing(output.numpy(), ground_truths[key].numpy())
-                    processed_output = torch.from_numpy(processed_img)
-                    temp_iou = getIOU(processed_output, ground_truths[key])
-                    # record the outliers when iou is less than 0.1
-                    if is_debug and temp_iou < 0.1:
-                        visualize_outlier(images[key], output, i, "frame000")
+                    temp_iou = getIOU(output, ground_truths[key])
+                    # visualize the output
+                    result_image = TF.to_pil_image(output).convert("L")  # (1, 224, 224)
+                    result_image.save(os.path.join("images", "epoch_{}.png".format(i)))
+                    # record the outliers when iou is less than 0.5
+                    if is_debug and temp_iou < 0.5:
+                        visualize_outlier(images[key], output, output, i, "frame000")
                     iou += temp_iou
                     index += 1
-                    # visualize the output
-                    result_image = TF.to_pil_image(output).convert("L")     # (1, 224, 224)
-                    result_image.save(os.path.join("images", "epoch_{}.png".format(i)))
             avg_iou = iou / index
             print("The iou at epoch {} is {}...".format(i, avg_iou))
             writer.add_scalar("train/iou", avg_iou, i)
         # 测试嵌套在每一个epoch训练完之后
-        testing(test_loader, model, loss_fn, i)
+        if not is_debug:
+            testing(test_loader, model, loss_fn, i)
     writer.close()
 
 

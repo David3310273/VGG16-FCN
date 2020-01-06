@@ -1,7 +1,7 @@
 import torch
 
 
-def getIOU(output, ground_truth):
+def getIOU(output, ground_truth, threshold=0.5):
     """
     输入必须介于0-1之间的数，返回数值
     :param output:
@@ -11,8 +11,8 @@ def getIOU(output, ground_truth):
     ones_temp = torch.ones_like(output, dtype=torch.uint8)
     zeros_temp = torch.zeros_like(output, dtype=torch.uint8)
 
-    output_discreted = torch.where(output > 0.5, ones_temp, zeros_temp)
-    ground_truth_discreted = torch.where(ground_truth > 0.5, ones_temp, zeros_temp)
+    output_discreted = torch.where(output > threshold, ones_temp, zeros_temp)
+    ground_truth_discreted = torch.where(ground_truth > threshold, ones_temp, zeros_temp)
 
     # 先化成数值再计算，不能以向量的形式计算，
     intersection = torch.sum(output_discreted & ground_truth_discreted).item()
