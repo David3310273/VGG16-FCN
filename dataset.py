@@ -30,8 +30,9 @@ class EndovisDataset(Dataset):
 
         self.__make_dataset()
 
-    def augment_transform(self, img):
-        return img
+    def augment_transform(self, images):
+        return images
+
 
     def general_transform(self, img):
         """
@@ -94,7 +95,7 @@ class EndovisDataset(Dataset):
         # 真正加载图片
         for i in range(self.frame_len):
             raw_image = self.general_transform(Image.open(self.images[start+i])) # 裁黑边并进行resize
-            raw_ground_truth = self.general_transform(Image.open(self.ground_truths[start+i]).convert("L")) # ground truth转为灰度图用于最终loss的计算
+            raw_ground_truth = self.general_transform(Image.open(self.ground_truths[start+i])) # ground truth转为灰度图用于最终loss的计算
 
             print("loading image...")
             print(self.images[start+i])

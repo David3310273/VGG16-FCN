@@ -4,6 +4,7 @@ from PIL import Image
 import configparser
 import os
 import time
+from processing import *
 
 config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.ini"))
@@ -36,6 +37,7 @@ def visualize_outlier(img, output, mask, epoch, filename):
         os.mkdir(os.path.join(outlier_root, str(epoch)))
 
     img = TF.to_pil_image(img)
+    output = 255*binarify(output)
     output = TF.to_pil_image(output).convert("L")
     mask = TF.to_pil_image(mask).convert("L")
     img_path = os.path.join(outlier_root, str(epoch), "img_{}.png".format(filename))

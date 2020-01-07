@@ -1,11 +1,6 @@
 import torchvision.models as models
 import torch.nn as nn
 import torch.nn.functional as F
-from visualization import *
-
-config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.ini"))
-is_debug = bool(config["app"]["debug"])
 
 # referred to this site: https://github.com/Gurupradeep/FCN-for-Semantic-Segmentation
 class MyFCN(nn.Module):

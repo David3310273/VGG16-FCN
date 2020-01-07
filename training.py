@@ -1,5 +1,6 @@
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.transforms import functional as TF
+from torch.nn import functional as F
 import torch.optim as optim
 import os
 import configparser
@@ -63,8 +64,8 @@ def training(train_loader, test_loader, model, loss_fn):
             images, ground_truths = torch.squeeze(data[0], 1), torch.squeeze(data[1], 1)
             assert images.shape[1:] == (3, 224, 224)    # format: (batch_size, frame_len, c, h, w)
             assert ground_truths.shape[1:] == (1, 224, 224)
-            outputs = model(images)
             optimizer.zero_grad()
+            outputs = model(images)
             loss = loss_fn(outputs, ground_truths)
             loss.backward()
             optimizer.step()
@@ -85,14 +86,15 @@ def training(train_loader, test_loader, model, loss_fn):
                 assert ground_truths.shape[1:] == (1, 224, 224)
                 outputs = model(images)
                 for key, output in enumerate(outputs):
-                    # get iou at each epoch
-                    temp_iou = getIOU(output, ground_truths[key])
+                    # get iou at each epoch, using sigmoid to activate.
+                    output_for_iou = F.sigmoid(output)
+                    temp_iou = getIOU(output_for_iou, ground_truths[key])
                     # visualize the output
                     result_image = TF.to_pil_image(output).convert("L")  # (1, 224, 224)
                     result_image.save(os.path.join("images", "epoch_{}.png".format(i)))
                     # record the outliers when iou is less than 0.5
                     if is_debug and temp_iou < 0.5:
-                        visualize_outlier(images[key], output, output, i, "frame000")
+                        visualize_outlier(images[key], output_for_iou, ground_truths[key], i, "frame000")
                     iou += temp_iou
                     index += 1
             avg_iou = iou / index
