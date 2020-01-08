@@ -52,9 +52,6 @@ def training(train_loader, test_loader, model, loss_fn):
     if not os.path.exists(target):
         os.mkdir(target)
 
-    if not os.path.exists("images"):
-        os.mkdir("images")
-
     for i in range(epochs):
         total_loss = 0
         index = 0
@@ -75,13 +72,14 @@ def training(train_loader, test_loader, model, loss_fn):
         print("The loss of epoch {} is {}".format(i, total_loss/index))
         writer.add_scalar("train/bce_loss", total_loss/index, i)
         # output result image every epoch
-        # TODO: Save output to the dir
         with torch.no_grad():
             model.eval()
             index = 0
             iou = 0
             for idx, data in enumerate(train_loader):
                 images, ground_truths = torch.squeeze(data[0], 1), torch.squeeze(data[1], 1)
+                filenames = data[2]     # might be multiple frames here, so it's two dimension array here.
+                dataset = data[3][0][0] # get the dataset name
                 assert images.shape[1:] == (3, 224, 224)  # format: (batch_size, frame_len, c, h, w)
                 assert ground_truths.shape[1:] == (1, 224, 224)
                 outputs = model(images)
@@ -89,12 +87,11 @@ def training(train_loader, test_loader, model, loss_fn):
                     # get iou at each epoch, using sigmoid to activate.
                     output_for_iou = F.sigmoid(output)
                     temp_iou = getIOU(output_for_iou, ground_truths[key])
-                    # visualize the output
-                    result_image = TF.to_pil_image(output).convert("L")  # (1, 224, 224)
-                    result_image.save(os.path.join("images", "epoch_{}.png".format(i)))
+                    # save the output after training for the next epoch
+                    write_training_images(output_for_iou, i, dataset, filenames[key])
                     # record the outliers when iou is less than 0.5
                     if is_debug and temp_iou < 0.5:
-                        visualize_outlier(images[key], output_for_iou, ground_truths[key], i, "frame000")
+                        visualize_outlier(images[key], output_for_iou, ground_truths[key], i, filenames[key])
                     iou += temp_iou
                     index += 1
             avg_iou = iou / index

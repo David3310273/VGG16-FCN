@@ -57,9 +57,11 @@ class EndovisDataset(Dataset):
             img_path = dataset
             imgs = os.listdir(img_path)
             imgs.sort()  # 保证按时间顺序加载帧
+            temp_images = []
             for img in imgs:
-                img_path = os.path.join(img_path, img)
-                images.append(img_path)
+                img_route = os.path.join(img_path, img)
+                temp_images.append(img_route)
+            images.append(temp_images)
 
         # 按照dataset目录加载ground truth
         datasets = datadict["gt"]
@@ -71,9 +73,11 @@ class EndovisDataset(Dataset):
             img_path = dataset
             imgs = os.listdir(img_path)
             imgs.sort()  # 保证按时间顺序加载帧
+            temp_ground_truths = []
             for img in imgs:
-                img_path = os.path.join(img_path, img)
-                ground_truths.append(img_path)
+                img_route = os.path.join(img_path, img)
+                temp_ground_truths.append(img_route)
+            ground_truths.append(temp_ground_truths)
 
         self.images = images
         self.ground_truths = ground_truths
@@ -84,23 +88,29 @@ class EndovisDataset(Dataset):
         return length
 
     def __getitem__(self, index):
-        # pick out指定位置的图片，再进行真正的图片加载
+        # pick out指定位置的图片路径，再进行真正的图片加载
         frame_count = math.ceil(self.images_count / self.frame_len)
         dataset_index = index // frame_count
-        start = dataset_index*frame_count
-
+        start = dataset_index*frame_count + index % frame_count
+        print(index, start)
         images = []
         ground_truths = []
+        filenames = []
+
+        # 获取本次图片所属的dataset，不允许跨数据集获取
+        dataset_dir = os.path.dirname(self.images[dataset_index][0])
+        datasets = [os.path.basename(dataset_dir)]
 
         # 真正加载图片
-        for i in range(self.frame_len):
-            raw_image = self.general_transform(Image.open(self.images[start+i])) # 裁黑边并进行resize
-            raw_ground_truth = self.general_transform(Image.open(self.ground_truths[start+i])) # ground truth转为灰度图用于最终loss的计算
+        for i in range(min(self.frame_len, frame_count-start)):
+            raw_image = self.general_transform(Image.open(self.images[dataset_index][start+i]))    # 裁黑边并进行resize
+            raw_ground_truth = self.general_transform(Image.open(self.ground_truths[dataset_index][start+i]))  # ground truth转为灰度图用于最终loss的计算
 
-            print("loading image...")
-            print(self.images[start+i])
-            print("loading ground truths...")
-            print(self.ground_truths[start+i])
+            print("loading image and ground truth from {}...".format(datasets[0]))
+            print(self.images[dataset_index][start+i])
+            print(self.ground_truths[dataset_index][start+i])
+
+            filenames.append(os.path.basename(self.images[dataset_index][start+i]).split(".")[0])
 
             # data augmentation
             if self.data_aug:
@@ -117,7 +127,7 @@ class EndovisDataset(Dataset):
         images = torch.stack(images, 0)     # 增加batch size维度，共计四维tensor。
         ground_truths = torch.stack(ground_truths, 0)
 
-        return images, ground_truths
+        return images, ground_truths, filenames, datasets
 
 
 
