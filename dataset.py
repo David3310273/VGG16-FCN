@@ -84,15 +84,15 @@ class EndovisDataset(Dataset):
 
     def __len__(self):
         # 数据集大小应当等于：dataset_count*(ceil(image_count/frame_len))
-        length = self.dataset_len * (math.ceil(self.images_count / self.frame_len))
+        length = self.dataset_len * (self.images_count - self.frame_len + 1)
         return length
 
     def __getitem__(self, index):
         # pick out指定位置的图片路径，再进行真正的图片加载
-        frame_count = math.ceil(self.images_count / self.frame_len)
+        frame_count = self.images_count - self.frame_len + 1
         dataset_index = index // frame_count
-        start = dataset_index*frame_count + index % frame_count
-        print(index, start)
+        start = index % frame_count
+        print("{} => dataset {} and offset {}".format(index, dataset_index, start))
         images = []
         ground_truths = []
         filenames = []
@@ -102,7 +102,7 @@ class EndovisDataset(Dataset):
         datasets = [os.path.basename(dataset_dir)]
 
         # 真正加载图片
-        for i in range(min(self.frame_len, frame_count-start)):
+        for i in range(self.frame_len):
             raw_image = self.general_transform(Image.open(self.images[dataset_index][start+i]))    # 裁黑边并进行resize
             raw_ground_truth = self.general_transform(Image.open(self.ground_truths[dataset_index][start+i]))  # ground truth转为灰度图用于最终loss的计算
 

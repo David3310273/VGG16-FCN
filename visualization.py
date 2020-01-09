@@ -63,7 +63,7 @@ def write_training_images(image, epoch, dataset, filenames):
         neg_output.save(neg_img_root)
 
 
-def visualize_outlier(img, output, mask, epoch, filename):
+def visualize_outlier(img, output, mask, epoch, dataset, filename):
     """
     记录性能异常的输入输出，并标注epoch
     :param img: 输入
@@ -77,13 +77,16 @@ def visualize_outlier(img, output, mask, epoch, filename):
     if not os.path.exists(os.path.join(outlier_root, str(epoch))):
         os.mkdir(os.path.join(outlier_root, str(epoch)))
 
+    if not os.path.exists(os.path.join(outlier_root, str(epoch), dataset)):
+        os.mkdir(os.path.join(outlier_root, str(epoch), dataset))
+
     img = TF.to_pil_image(img)
     output = 255*binarify(output)
     output = TF.to_pil_image(output).convert("L")
     mask = TF.to_pil_image(mask).convert("L")
-    img_path = os.path.join(outlier_root, str(epoch), "img_{}.png".format(filename[0]))
-    output_path = os.path.join(outlier_root, str(epoch), "output_{}.png".format(filename[0]))
-    mask_path = os.path.join(outlier_root, str(epoch), "mask_{}.png".format(filename[0]))
+    img_path = os.path.join(outlier_root, str(epoch), dataset,  "img_{}.png".format(filename[0]))
+    output_path = os.path.join(outlier_root, str(epoch), dataset, "output_{}.png".format(filename[0]))
+    mask_path = os.path.join(outlier_root, str(epoch), dataset, "mask_{}.png".format(filename[0]))
     img.save(img_path)
     output.save(output_path)
     mask.save(mask_path)

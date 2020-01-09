@@ -91,7 +91,7 @@ def training(train_loader, test_loader, model, loss_fn):
                     write_training_images(output_for_iou, i, dataset, filenames[key])
                     # record the outliers when iou is less than 0.5
                     if is_debug and temp_iou < 0.5:
-                        visualize_outlier(images[key], output_for_iou, ground_truths[key], i, filenames[key])
+                        visualize_outlier(images[key], output_for_iou, ground_truths[key], i, dataset, filenames[key])
                     iou += temp_iou
                     index += 1
             avg_iou = iou / index
