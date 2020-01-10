@@ -45,6 +45,15 @@ def testing(test_loader, model, loss_fn, epoch=0):
 
 
 def training(train_loader, test_loader, model, loss_fn):
+    """
+    训练函数，以epoch为基本单位，每一个epoch里使用fake_gt训练网络，并记录和real_gt的iou和训练loss，并进行测试
+    每一个iteration结束后，额外打印训练数据对应的模型输出作为下一轮的fake_gt。
+    :param train_loader:
+    :param test_loader:
+    :param model:
+    :param loss_fn:
+    :return:
+    """
     target = config["training"]["logdir"]
     writer = SummaryWriter(target)
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
@@ -58,12 +67,14 @@ def training(train_loader, test_loader, model, loss_fn):
         model.train()
         print("### the epoch {} start.... ###".format(i))
         for idx, data in enumerate(train_loader):
-            images, ground_truths = torch.squeeze(data[0], 1), torch.squeeze(data[1], 1)
+            images = torch.squeeze(data[0], 1)
+            pos_gts, neg_gts = torch.squeeze(data[2], 1), torch.squeeze(data[3], 1)
             assert images.shape[1:] == (3, 224, 224)    # format: (batch_size, frame_len, c, h, w)
-            assert ground_truths.shape[1:] == (1, 224, 224)
+            assert pos_gts.shape[1:] == (1, 224, 224)
+            assert neg_gts.shape[1:] == (1, 224, 224)
             optimizer.zero_grad()
             outputs = model(images)
-            loss = loss_fn(outputs, ground_truths)
+            loss = loss_fn(outputs, pos_gts)
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
@@ -78,8 +89,9 @@ def training(train_loader, test_loader, model, loss_fn):
             iou = 0
             for idx, data in enumerate(train_loader):
                 images, ground_truths = torch.squeeze(data[0], 1), torch.squeeze(data[1], 1)
-                filenames = data[2]     # might be multiple frames here, so it's two dimension array here.
-                dataset = data[3][0][0] # get the dataset name
+                pos_gts = torch.squeeze(data[2], 1)
+                filenames = data[4]         # might be multiple frames here, so it's two dimension array here.
+                dataset = data[5][0][0]     # get the dataset name
                 assert images.shape[1:] == (3, 224, 224)  # format: (batch_size, frame_len, c, h, w)
                 assert ground_truths.shape[1:] == (1, 224, 224)
                 outputs = model(images)
@@ -91,7 +103,7 @@ def training(train_loader, test_loader, model, loss_fn):
                     write_training_images(output_for_iou, i, dataset, filenames[key])
                     # record the outliers when iou is less than 0.5
                     if is_debug and temp_iou < 0.5:
-                        visualize_outlier(images[key], output_for_iou, ground_truths[key], i, dataset, filenames[key])
+                        visualize_outlier(images[key], output_for_iou, ground_truths[key], pos_gts[key], i, dataset, filenames[key])
                     iou += temp_iou
                     index += 1
             avg_iou = iou / index

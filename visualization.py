@@ -63,11 +63,12 @@ def write_training_images(image, epoch, dataset, filenames):
         neg_output.save(neg_img_root)
 
 
-def visualize_outlier(img, output, mask, epoch, dataset, filename):
+def visualize_outlier(img, output, mask, fake_gt, epoch, dataset, filename):
     """
     记录性能异常的输入输出，并标注epoch
     :param img: 输入
     :param output: 输出
+    :param fake_gt:
     :param epoch: 迭代轮数
     :return:
     """
@@ -84,12 +85,16 @@ def visualize_outlier(img, output, mask, epoch, dataset, filename):
     output = 255*binarify(output)
     output = TF.to_pil_image(output).convert("L")
     mask = TF.to_pil_image(mask).convert("L")
+    fake_gt = 255*binarify(fake_gt)
+    fake_gt = TF.to_pil_image(fake_gt).convert("L")
     img_path = os.path.join(outlier_root, str(epoch), dataset,  "img_{}.png".format(filename[0]))
     output_path = os.path.join(outlier_root, str(epoch), dataset, "output_{}.png".format(filename[0]))
     mask_path = os.path.join(outlier_root, str(epoch), dataset, "mask_{}.png".format(filename[0]))
+    fake_gt_path = os.path.join(outlier_root, str(epoch), dataset, "fake_gt_{}.png".format(filename[0]))
     img.save(img_path)
     output.save(output_path)
     mask.save(mask_path)
+    fake_gt.save(fake_gt_path)
 
 
 
