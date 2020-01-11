@@ -12,9 +12,18 @@ config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.ini"))
 epochs = int(config["training"]["epochs"])
 is_debug = bool(config["app"]["debug"])
+gpu = config["tranining"]["gpu"]
 
 
-def testing(test_loader, model, loss_fn, epoch=0):
+def get_cuda_device():
+    device = torch.device("cpu:0")
+    if torch.cuda.is_available():
+        os.environ['CUDA_VISIBLE_DEVICES'] = gpu
+        device = torch.device("cuda", int(gpu))
+    return device
+
+
+def testing(test_loader, model, loss_fn, device, epoch=0):
     target = config["testing"]["logdir"]
     writer = SummaryWriter(target)
 
@@ -23,10 +32,11 @@ def testing(test_loader, model, loss_fn, epoch=0):
     # 此处没有训练过程
     with torch.no_grad():
         model.eval()
+        model.to(device)
         index = 0
         iou = 0
         for idx, data in enumerate(test_loader):
-            images, ground_truths = torch.squeeze(data[0], 1), torch.squeeze(data[1], 1)
+            images, ground_truths = torch.squeeze(data[0], 1).to(device), torch.squeeze(data[1], 1).to(device)
             assert images.shape[1:] == (3, 224, 224)  # format: (batch_size, frame_len, c, h, w)
             assert ground_truths.shape[1:] == (1, 224, 224)
             outputs = model(images)
@@ -44,10 +54,11 @@ def testing(test_loader, model, loss_fn, epoch=0):
     writer.close()
 
 
-def training(train_loader, test_loader, model, loss_fn):
+def training(train_loader, test_loader, model, loss_fn, device):
     """
     训练函数，以epoch为基本单位，每一个epoch里使用fake_gt训练网络，并记录和real_gt的iou和训练loss，并进行测试
     每一个iteration结束后，额外打印训练数据对应的模型输出作为下一轮的fake_gt。
+    :param device: gpu device
     :param train_loader:
     :param test_loader:
     :param model:
@@ -61,14 +72,16 @@ def training(train_loader, test_loader, model, loss_fn):
     if not os.path.exists(target):
         os.mkdir(target)
 
+    # TODO: calculating on the gpu device
     for i in range(epochs):
         total_loss = 0
         index = 0
         model.train()
+        model.to(device)
         print("### the epoch {} start.... ###".format(i))
         for idx, data in enumerate(train_loader):
-            images = torch.squeeze(data[0], 1)
-            pos_gts, neg_gts = torch.squeeze(data[2], 1), torch.squeeze(data[3], 1)
+            images = torch.squeeze(data[0], 1).to(device)
+            pos_gts, neg_gts = torch.squeeze(data[2], 1).to(device), torch.squeeze(data[3], 1).to(device)
             assert images.shape[1:] == (3, 224, 224)    # format: (batch_size, frame_len, c, h, w)
             assert pos_gts.shape[1:] == (1, 224, 224)
             assert neg_gts.shape[1:] == (1, 224, 224)
@@ -88,8 +101,8 @@ def training(train_loader, test_loader, model, loss_fn):
             index = 0
             iou = 0
             for idx, data in enumerate(train_loader):
-                images, ground_truths = torch.squeeze(data[0], 1), torch.squeeze(data[1], 1)
-                pos_gts = torch.squeeze(data[2], 1)
+                images, ground_truths = torch.squeeze(data[0], 1).to(device), torch.squeeze(data[1], 1).to(device)
+                pos_gts = torch.squeeze(data[2], 1).to(device)
                 filenames = data[4]         # might be multiple frames here, so it's two dimension array here.
                 dataset = data[5][0][0]     # get the dataset name
                 assert images.shape[1:] == (3, 224, 224)  # format: (batch_size, frame_len, c, h, w)
@@ -111,7 +124,7 @@ def training(train_loader, test_loader, model, loss_fn):
             writer.add_scalar("train/iou", avg_iou, i)
         # 测试嵌套在每一个epoch训练完之后
         if not is_debug:
-            testing(test_loader, model, loss_fn, i)
+            testing(test_loader, model, loss_fn, device, i)
     writer.close()
 
 
