@@ -11,8 +11,8 @@ import numpy as np
 config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.ini"))
 epochs = int(config["training"]["epochs"])
-is_debug = bool(config["app"]["debug"])
-gpu = config["tranining"]["gpu"]
+is_debug = config.getboolean("app", "debug")
+gpu = config["training"]["gpu"]
 
 
 def get_cuda_device():
@@ -23,11 +23,11 @@ def get_cuda_device():
     return device
 
 
-def testing(test_loader, model, loss_fn, device, epoch=0):
+def testing(test_loader, model, loss_fn, device, epoch=0, iter_num=0):
     target = config["testing"]["logdir"]
     writer = SummaryWriter(target)
 
-    print("### Testing period....... ###")
+    print("### Testing period of epoch {}....... ###".format(epoch))
 
     # 此处没有训练过程
     with torch.no_grad():
@@ -42,7 +42,7 @@ def testing(test_loader, model, loss_fn, device, epoch=0):
             outputs = model(images)
             loss = loss_fn(outputs, ground_truths)
             print("The loss at epoch {} is {}...".format(epoch, loss))
-            writer.add_scalar("test/bce_loss", loss, epoch)
+            writer.add_scalars("test/{}/bce_loss".format(iter_num), {"epoch_{}".format(epoch): loss}, idx)
             # calculate iou
             for key, output in enumerate(outputs):
                 # get iou at each epoch
@@ -50,11 +50,11 @@ def testing(test_loader, model, loss_fn, device, epoch=0):
                 index += 1
             avg_iou = iou / index
             print("The iou at epoch {} is {}...".format(epoch, avg_iou))
-            writer.add_scalar("test/iou", avg_iou, epoch)
+            writer.add_scalars("test/{}/iou".format(iter_num), {"epoch_{}".format(epoch): avg_iou}, idx)
     writer.close()
 
 
-def training(train_loader, test_loader, model, loss_fn, device):
+def training(train_loader, test_loader, model, loss_fn, device, iter_num=0):
     """
     训练函数，以epoch为基本单位，每一个epoch里使用fake_gt训练网络，并记录和real_gt的iou和训练loss，并进行测试
     每一个iteration结束后，额外打印训练数据对应的模型输出作为下一轮的fake_gt。
@@ -80,27 +80,25 @@ def training(train_loader, test_loader, model, loss_fn, device):
         model.to(device)
         print("### the epoch {} start.... ###".format(i))
         for idx, data in enumerate(train_loader):
-            images = torch.squeeze(data[0], 1).to(device)
+            images, ground_truths = torch.squeeze(data[0], 1).to(device), torch.squeeze(data[1], 1).to(device)
             pos_gts, neg_gts = torch.squeeze(data[2], 1).to(device), torch.squeeze(data[3], 1).to(device)
             assert images.shape[1:] == (3, 224, 224)    # format: (batch_size, frame_len, c, h, w)
             assert pos_gts.shape[1:] == (1, 224, 224)
             assert neg_gts.shape[1:] == (1, 224, 224)
             optimizer.zero_grad()
             outputs = model(images)
-            loss = loss_fn(outputs, pos_gts)
+            loss = loss_fn(outputs, ground_truths)
             loss.backward()
             optimizer.step()
-            total_loss += loss.item()
-            index += 1
 
-        print("The loss of epoch {} is {}".format(i, total_loss/index))
-        writer.add_scalar("train/bce_loss", total_loss/index, i)
+            print("batch {}: The loss of epoch {} is {}".format(idx, i, loss.item()))
+            writer.add_scalars("train/{}/bce_loss".format(iter_num), {"epoch_{}".format(i): loss.item()}, idx)
         # output result image every epoch
         with torch.no_grad():
             model.eval()
-            index = 0
-            iou = 0
             for idx, data in enumerate(train_loader):
+                index = 0
+                iou = 0
                 images, ground_truths = torch.squeeze(data[0], 1).to(device), torch.squeeze(data[1], 1).to(device)
                 pos_gts = torch.squeeze(data[2], 1).to(device)
                 filenames = data[4]         # might be multiple frames here, so it's two dimension array here.
@@ -113,18 +111,18 @@ def training(train_loader, test_loader, model, loss_fn, device):
                     output_for_iou = F.sigmoid(output)
                     temp_iou = getIOU(output_for_iou, ground_truths[key])
                     # save the output after training for the next epoch
-                    write_training_images(output_for_iou, i, dataset, filenames[key])
+                    # write_training_images(output_for_iou, i, dataset, filenames[key])
                     # record the outliers when iou is less than 0.5
                     if is_debug and temp_iou < 0.5:
-                        visualize_outlier(images[key], output_for_iou, ground_truths[key], pos_gts[key], i, dataset, filenames[key])
+                        visualize_outlier(images[key].detach().cpu(), output_for_iou.detach().cpu(), ground_truths[key].detach().cpu(), pos_gts[key].detach().cpu(), i, dataset, filenames[key])
                     iou += temp_iou
                     index += 1
-            avg_iou = iou / index
-            print("The iou at epoch {} is {}...".format(i, avg_iou))
-            writer.add_scalar("train/iou", avg_iou, i)
+                avg_iou = iou / index
+                print("The iou at batch {} in epoch {} is {}...".format(i, idx, avg_iou))
+                writer.add_scalars("train/{}/iou".format(iter_num), {"epoch_{}".format(i): avg_iou}, idx)
         # 测试嵌套在每一个epoch训练完之后
         if not is_debug:
-            testing(test_loader, model, loss_fn, device, i)
+            testing(test_loader, model, loss_fn, device, i, iter_num)
     writer.close()
 
 
