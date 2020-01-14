@@ -31,10 +31,12 @@ def augment_transform(*datasets, target_size):
     length = len(datasets)
     assert length > 0
 
+    flip_flag = random.random() > 0.5
+
     # crop, flip and color change
     composer = transforms.Compose([
         transforms.RandomResizedCrop(target_size, scale=(0.85, 1)),
-        transforms.RandomHorizontalFlip(),
+        transforms.RandomHorizontalFlip(p=(1 if flip_flag else 0)),
     ])
 
     # only do this for the input image
