@@ -72,10 +72,7 @@ def training(train_loader, test_loader, model, loss_fn, device, iter_num=0):
     if not os.path.exists(target):
         os.mkdir(target)
 
-    # TODO: calculating on the gpu device
     for i in range(epochs):
-        total_loss = 0
-        index = 0
         model.train()
         model.to(device)
         print("### the epoch {} start.... ###".format(i))

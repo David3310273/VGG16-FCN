@@ -6,7 +6,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 import math
 import torchvision.transforms.functional as TF
-from torchvision.transforms import ColorJitter
+from processing import augment_transform
 
 class EndovisDataset(Dataset):
     def __init__(self, path_dict, need_aug=True, frame_len=1):
@@ -29,10 +29,6 @@ class EndovisDataset(Dataset):
         self.images_count = len(os.listdir(dum_dataset_path))
 
         self.__make_dataset()
-
-    def augment_transform(self, images):
-        return images
-
 
     def general_transform(self, img):
         """
@@ -151,10 +147,7 @@ class EndovisDataset(Dataset):
 
             # data augmentation
             if self.data_aug:
-                raw_image = self.augment_transform(raw_image)
-                raw_ground_truth = self.augment_transform(raw_ground_truth)
-                raw_pos_fake_ground_truth = self.augment_transform(raw_pos_fake_ground_truth)
-                raw_neg_fake_ground_truth = self.augment_transform(raw_neg_fake_ground_truth)
+                raw_image, raw_ground_truth, raw_pos_fake_ground_truth, raw_neg_fake_ground_truth = augment_transform(raw_image, raw_ground_truth, raw_pos_fake_ground_truth, raw_neg_fake_ground_truth, target_size=self.model_size)
 
             # 最终转化为0-1之间的数值的tensor，必须是pil image或者可以被认为是图片shape的numpy。
             image_tensor = TF.to_tensor(raw_image)
