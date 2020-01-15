@@ -11,7 +11,7 @@ import numpy as np
 config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.ini"))
 outlier_training_root = config["training"]["outlier_root"]
-outlier_test_root = config["test"]["outlier_root"]
+outlier_test_root = config["testing"]["outlier_root"]
 epochs = int(config["training"]["epochs"])
 is_debug = config.getboolean("app", "debug")
 gpu = config["training"]["gpu"]
