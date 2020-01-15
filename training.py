@@ -46,7 +46,8 @@ def testing(test_loader, model, loss_fn, device, epoch=0, iter_num=0):
             # calculate iou
             for key, output in enumerate(outputs):
                 # get iou at each epoch
-                iou += getIOU(output, ground_truths[key])
+                output_for_iou = F.sigmoid(output)
+                iou += getIOU(output_for_iou, ground_truths[key])
                 index += 1
             avg_iou = iou / index
             print("The iou at epoch {} is {}...".format(epoch, avg_iou))
@@ -106,6 +107,7 @@ def training(train_loader, test_loader, model, loss_fn, device, iter_num=0):
                 for key, output in enumerate(outputs):
                     # get iou at each epoch, using sigmoid to activate.
                     output_for_iou = F.sigmoid(output)
+                    # threshold = threshold_by_ostu(TF.to_pil_image(output_for_iou))
                     temp_iou = getIOU(output_for_iou, ground_truths[key])
                     # save the output after training for the next epoch
                     # write_training_images(output_for_iou, i, dataset, filenames[key])
