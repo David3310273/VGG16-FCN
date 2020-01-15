@@ -10,7 +10,6 @@ from processing import *
 config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.ini"))
 root = config["app"]["debug_output"]
-outlier_root = config["app"]["outlier_dir"]
 epoch_output_root = config["training"]["epoch_output"]
 
 
@@ -77,7 +76,7 @@ def write_training_images(data_loader, model, device, iter_num):
                 neg_output.save(neg_img_root)
 
 
-def visualize_outlier(img, output, mask, fake_gt, epoch, dataset, filename):
+def visualize_outlier(outlier_root, img, output, mask, fake_gt, epoch, dataset, filename):
     """
     记录性能异常的输入输出，并标注epoch
     :param img: 输入
