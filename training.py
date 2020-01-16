@@ -49,7 +49,8 @@ def testing(test_loader, model, loss_fn, device, epoch=0):
             for key, output in enumerate(outputs):
                 # get iou at each epoch
                 output_for_iou = F.sigmoid(output)
-                temp_iou = getIOU(output_for_iou, ground_truths[key])
+                threshold = threshold_by_ostu(TF.to_pil_image(output_for_iou)) / 255
+                temp_iou = getIOU(output_for_iou, ground_truths[key], threshold)
                 iou += temp_iou
                 index += 1
             avg_iou = iou / index
@@ -57,7 +58,7 @@ def testing(test_loader, model, loss_fn, device, epoch=0):
             writer.add_scalars("test/iou", {"epoch_{}".format(epoch): avg_iou}, idx)
     writer.close()
 
-
+# TODO: save model and checkpoint
 def training(train_loader, test_loader, model, loss_fn, device):
     """
     训练函数，以epoch为基本单位，每一个epoch里使用fake_gt训练网络，并记录和real_gt的iou和训练loss，并进行测试
@@ -88,7 +89,7 @@ def training(train_loader, test_loader, model, loss_fn, device):
             assert neg_gts.shape[1:] == (1, 224, 224)
             optimizer.zero_grad()
             outputs = model(images)
-            loss = loss_fn(outputs, ground_truths)
+            loss = loss_fn(outputs, pos_gts)
             loss.backward()
             optimizer.step()
             writer.add_scalars("train/bce_loss", {"epoch_{}".format(i): loss.item()}, idx)
@@ -108,11 +109,13 @@ def training(train_loader, test_loader, model, loss_fn, device):
                 for key, output in enumerate(outputs):
                     # get iou at each epoch, using sigmoid to activate.
                     output_for_iou = F.sigmoid(output)
-                    # threshold = threshold_by_ostu(TF.to_pil_image(output_for_iou))
-                    temp_iou = getIOU(output_for_iou, ground_truths[key])
+                    threshold = threshold_by_ostu(TF.to_pil_image(output_for_iou))/255
+                    print("the threshold is {}...".format(threshold))
+                    temp_iou = getIOU(output_for_iou, ground_truths[key], threshold)
                     # record the outliers when iou is less than 0.5
                     if is_debug and temp_iou < 0.5:
-                        visualize_outlier(config["training"]["outlier_dir"], images[key].detach().cpu(), output_for_iou.detach().cpu(), ground_truths[key].detach().cpu(), pos_gts[key].detach().cpu(), i, dataset, filenames[key])
+                        output_for_vis = 255*binarify(output_for_iou, threshold)
+                        visualize_outlier(config["training"]["outlier_root"], images[key].detach().cpu(), output_for_vis.detach().cpu(), ground_truths[key].detach().cpu(), pos_gts[key].detach().cpu(), i, dataset, filenames[key], threshold)
                     iou += temp_iou
                     index += 1
                 avg_iou = iou / index

@@ -6,7 +6,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 import math
 import torchvision.transforms.functional as TF
-from processing import augment_transform
+from processing import augment_transform, threshold_by_ostu
 
 class EndovisDataset(Dataset):
     def __init__(self, path_dict, need_aug=True, frame_len=1):
@@ -114,6 +114,19 @@ class EndovisDataset(Dataset):
         length = self.dataset_len * (self.images_count - self.frame_len + 1)
         return length
 
+    def threshold_transform(self, img):
+        """
+        传入0-255的灰度PIL图，给出分割后的PIL图片
+        :param img:
+        :return:
+        """
+        image = np.array(img)
+        threshold = threshold_by_ostu(image)
+        image[image > threshold] = 255
+        image[image <= threshold] = 0
+
+        return Image.fromarray(image)
+
     def __getitem__(self, index):
         # pick out指定位置的图片路径，再进行真正的图片加载
         frame_count = self.images_count - self.frame_len + 1
@@ -144,6 +157,10 @@ class EndovisDataset(Dataset):
             print(self.neg_gts[dataset_index][start+i])
 
             filenames.append(os.path.basename(self.images[dataset_index][start+i]).split(".")[0])
+
+            # 对fake ground truth做二值化以备训练
+            raw_pos_fake_ground_truth = self.threshold_transform(raw_pos_fake_ground_truth)
+            raw_neg_fake_ground_truth = self.threshold_transform(raw_neg_fake_ground_truth)
 
             # data augmentation
             if self.data_aug:

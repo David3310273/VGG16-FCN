@@ -1,7 +1,8 @@
 import torch
 import random
 from torchvision import transforms
-import torchvision.transforms.functional as TF
+import numpy as np
+from skimage.filters import threshold_otsu
 
 
 # 根据阈值，将Tensor二值化为0-1map
@@ -18,6 +19,12 @@ def shuffle_lists(*lists):
     for array in lists:
         random.seed(seed)
         random.shuffle(array)
+
+
+# ostu自动阈值分割，输入0-1scale的pillow灰度图输出float阈值，转化为0-1之间的scale
+def threshold_by_ostu(img, bins=255):
+    image = np.array(img)
+    return threshold_otsu(image, bins)
 
 
 # data augmentation
