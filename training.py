@@ -39,10 +39,11 @@ def testing(test_loader, model, loss_fn, device, epoch=0):
         iou = 0
         for idx, data in enumerate(test_loader):
             images, ground_truths = torch.squeeze(data[0], 1).to(device), torch.squeeze(data[1], 1).to(device)
+            pos_gts, neg_gts = torch.squeeze(data[2], 1).to(device), torch.squeeze(data[3], 1).to(device)
             assert images.shape[1:] == (3, 224, 224)  # format: (batch_size, frame_len, c, h, w)
             assert ground_truths.shape[1:] == (1, 224, 224)
             outputs = model(images)
-            loss = loss_fn(outputs, ground_truths)
+            loss = loss_fn(outputs, pos_gts)
             print("The loss at epoch {} is {}...".format(epoch, loss))
             writer.add_scalars("test/bce_loss", {"epoch_{}".format(epoch): loss}, idx)
             # calculate iou
@@ -115,7 +116,7 @@ def training(train_loader, test_loader, model, loss_fn, device):
                     # record the outliers when iou is less than 0.5
                     if is_debug and temp_iou < 0.5:
                         output_for_vis = 255*binarify(output_for_iou, threshold)
-                        visualize_outlier(config["training"]["outlier_root"], images[key].detach().cpu(), output_for_vis.detach().cpu(), ground_truths[key].detach().cpu(), pos_gts[key].detach().cpu(), i, dataset, filenames[key], threshold)
+                        visualize_outlier(config["training"]["outlier_root"], images[key].detach().cpu(), output_for_vis.detach().cpu(), ground_truths[key].detach().cpu(), pos_gts[key].detach().cpu(), i, dataset, filenames[key])
                     iou += temp_iou
                     index += 1
                 avg_iou = iou / index
