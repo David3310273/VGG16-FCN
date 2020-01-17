@@ -50,7 +50,7 @@ def testing(test_loader, model, loss_fn, device, epoch=0):
             for key, output in enumerate(outputs):
                 # get iou at each epoch
                 output_for_iou = F.sigmoid(output)
-                threshold = threshold_by_ostu(TF.to_pil_image(output_for_iou)) / 255
+                threshold = threshold_by_ostu(TF.to_pil_image(output_for_iou.detach().cpu())) / 255
                 temp_iou = getIOU(output_for_iou, ground_truths[key], threshold)
                 iou += temp_iou
                 index += 1
@@ -110,7 +110,7 @@ def training(train_loader, test_loader, model, loss_fn, device):
                 for key, output in enumerate(outputs):
                     # get iou at each epoch, using sigmoid to activate.
                     output_for_iou = F.sigmoid(output)
-                    threshold = threshold_by_ostu(TF.to_pil_image(output_for_iou))/255
+                    threshold = threshold_by_ostu(TF.to_pil_image(output_for_iou.detach().cpu()))/255
                     print("the threshold is {}...".format(threshold))
                     temp_iou = getIOU(output_for_iou, ground_truths[key], threshold)
                     # record the outliers when iou is less than 0.5
