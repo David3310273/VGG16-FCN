@@ -35,8 +35,8 @@ def testing(test_loader, model, loss_fn, device, epoch=0):
     with torch.no_grad():
         model.eval()
         model.to(device)
-        index = 0
         iou = 0
+        index = 0
         for idx, data in enumerate(test_loader):
             images, ground_truths = torch.squeeze(data[0], 1).to(device), torch.squeeze(data[1], 1).to(device)
             pos_gts, neg_gts = torch.squeeze(data[2], 1).to(device), torch.squeeze(data[3], 1).to(device)
@@ -54,9 +54,9 @@ def testing(test_loader, model, loss_fn, device, epoch=0):
                 temp_iou = getIOU(output_for_iou, ground_truths[key], threshold)
                 iou += temp_iou
                 index += 1
-            avg_iou = iou / index
-            print("The iou at epoch {} is {}...".format(epoch, avg_iou))
-            writer.add_scalars("test/iou", {"epoch_{}".format(epoch): avg_iou}, idx)
+        avg_iou = iou / index
+        print("The iou at epoch {} is {}...".format(epoch, avg_iou))
+        writer.add_scalar("test/iou", avg_iou, index)
     writer.close()
 
 # TODO: save model and checkpoint
