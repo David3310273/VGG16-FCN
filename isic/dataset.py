@@ -2,7 +2,7 @@ import os
 import random
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageFilter
 from torch.utils.data import Dataset
 import math
 import torchvision.transforms.functional as TF
@@ -142,6 +142,7 @@ class IsicDataset(Dataset):
         # 真正加载图片
         if not self.is_test:
             raw_image = self.general_transform(Image.open(self.train_images[index]))    # 裁黑边并进行resize
+            raw_image = raw_image.filter(ImageFilter.MaxFilter(7))  # 对原图进行滤波处理
             raw_ground_truth = self.general_transform(Image.open(self.train_ground_truths[index]))  # ground truth转为灰度图用于最终loss的计算
             raw_pos_fake_ground_truth = self.general_transform(Image.open(self.train_pos_gts[index]))
             filenames = (self.train_images[index]).split(".")[0]
@@ -154,6 +155,7 @@ class IsicDataset(Dataset):
             print(filenames)
         else:
             raw_image = self.general_transform(Image.open(self.test_images[index]))  # 裁黑边并进行resize
+            raw_image = raw_image.filter(ImageFilter.MaxFilter(7))  # 对原图进行滤波处理
             raw_ground_truth = self.general_transform(
                 Image.open(self.test_ground_truths[index]))  # ground truth转为灰度图用于最终loss的计算
             raw_pos_fake_ground_truth = self.general_transform(Image.open(self.test_pos_gts[index]))

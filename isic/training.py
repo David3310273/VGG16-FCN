@@ -43,7 +43,7 @@ def testing(test_loader, model, loss_fn, device, epoch=0):
             assert images.shape[1:] == (3, 224, 224)  # format: (batch_size, frame_len, c, h, w)
             assert ground_truths.shape[1:] == (1, 224, 224)
             outputs = model(images)
-            loss = loss_fn(outputs, ground_truths)
+            loss = loss_fn(outputs, pos_gts)
             print("The loss at epoch {} is {}...".format(epoch, loss))
             writer.add_scalar("test/bce_loss/{}".format(epoch), loss, idx)
             # calculate iou
@@ -89,7 +89,7 @@ def training(train_loader, test_loader, model, loss_fn, device):
             assert pos_gts.shape[1:] == (1, 224, 224)
             optimizer.zero_grad()
             outputs = model(images)
-            loss = loss_fn(outputs, ground_truths)
+            loss = loss_fn(outputs, pos_gts)
             loss.backward()
             optimizer.step()
             writer.add_scalars("train/bce_loss", {"epoch_{}".format(i): loss.item()}, idx)
