@@ -75,6 +75,9 @@ def write_training_images(data_loader, model, device, iter_num):
                 output.save(pos_img_root)
                 neg_output.save(neg_img_root)
 
+def visualize_image(img, target):
+    img = TF.to_pil_image(img)
+    img.save(target)
 
 def visualize_outlier(outlier_root, img, output, mask, fake_gt, epoch, dataset, filename):
     """

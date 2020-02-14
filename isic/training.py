@@ -15,6 +15,7 @@ outlier_test_root = config["isic_test"]["outlier_root"]
 epochs = int(config["isic_train"]["epochs"])
 is_debug = config.getboolean("isic", "debug")
 gpu = config["isic_train"]["gpu"]
+predict_root = config["isic_test"]["prediction_root"]
 
 
 def get_cuda_device():
@@ -40,6 +41,7 @@ def testing(test_loader, model, loss_fn, device, epoch=0):
         for idx, data in enumerate(test_loader):
             images, ground_truths = data[0].to(device), data[1].to(device)
             pos_gts = data[2].to(device)
+            filename = data[3]
             assert images.shape[1:] == (3, 224, 224)  # format: (batch_size, frame_len, c, h, w)
             assert ground_truths.shape[1:] == (1, 224, 224)
             outputs = model(images)
@@ -51,6 +53,10 @@ def testing(test_loader, model, loss_fn, device, epoch=0):
                 # get iou at each epoch
                 output_for_iou = F.sigmoid(output)
                 threshold = threshold_by_ostu(TF.to_pil_image(output_for_iou.detach().cpu())) / 255
+                # 输出预测结果和fake_Gt
+                if is_debug:
+                    output_for_vis = 255 * binarify(output_for_iou, threshold)
+                    visualize_image(output_for_vis, os.path.join(predict_root, "predict_gt_{}".format(filename)))
                 temp_iou = max(getIOU(output_for_iou, ground_truths[key], threshold), getIOU(1-output_for_iou, ground_truths[key], threshold))
                 iou += temp_iou
                 index += 1
