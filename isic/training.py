@@ -56,7 +56,7 @@ def testing(test_loader, model, loss_fn, device, epoch=0):
                 # 输出预测结果和fake_Gt
                 if is_debug:
                     output_for_vis = 255 * binarify(output_for_iou, threshold)
-                    visualize_image(output_for_vis, os.path.join(predict_root, "predict_gt_{}".format(filename)))
+                    visualize_image(output_for_vis.detach().cpu(), os.path.join(predict_root, "predict_gt_{}".format(filename)))
                 temp_iou = max(getIOU(output_for_iou, ground_truths[key], threshold), getIOU(1-output_for_iou, ground_truths[key], threshold))
                 iou += temp_iou
                 index += 1
